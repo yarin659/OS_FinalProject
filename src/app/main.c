@@ -8,7 +8,7 @@ int main(int argc, char *argv[]) {
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 
-    if (argc > 0 && !strcmp(argv[0], "--test")) {
+    if (argc > 1 && !strcmp(argv[1], "--test")) {
         // TODO run unit tests
         return 0;
     }
