@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    Graph graph = {};
+    struct graph_t graph = {};
     load_graph_from_file("data/sample_graph.dat", &graph);
 
     return 0;

@@ -3,11 +3,11 @@
 
 #include "common.h"
 
-typedef struct {
+struct graph_t {
     // TODO
-} Graph;
+};
 
-BOOL load_graph_from_file(const char* filename, Graph* out_graph);
-BOOL load_graph_from_string(const char* graph_string, Graph* out_graph);
+BOOL load_graph_from_file(const char* filename, struct graph_t* out_graph);
+BOOL load_graph_from_string(const char* graph_string, struct graph_t* out_graph);
 
 #endif //OSFINALPROJECT_GRAPH_H
