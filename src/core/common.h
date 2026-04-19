@@ -1,0 +1,11 @@
+
+#ifndef OS_FINALPROJECT_COMMON_H
+#define OS_FINALPROJECT_COMMON_H
+
+#define BOOL int
+#define TRUE 1
+#define FALSE 0
+
+#define UNREFERENCED_PARAMETER(x) (void)x;
+
+#endif //OS_FINALPROJECT_COMMON_H

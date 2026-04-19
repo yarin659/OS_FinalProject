@@ -1,5 +1,4 @@
-
-#define UNREFERENCED_PARAMETER(x) (void)x;
+#include "core/common.h"
 
 int main(int argc, char *argv[]) {
     UNREFERENCED_PARAMETER(argc);

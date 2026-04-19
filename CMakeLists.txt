@@ -20,5 +20,7 @@ endif ()
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(OSFinalProject src/main.c)
+add_executable(OSFinalProject src/app/main.c)
+target_include_directories(OSFinalProject PUBLIC src)
+
 target_link_libraries(OSFinalProject raylib)
