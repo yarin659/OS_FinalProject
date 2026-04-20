@@ -4,6 +4,7 @@
 #include <limits.h>
 
 #include "core/common.h"
+#include "core/graph.h"
 
 #define INF INT_MAX
 
@@ -43,7 +44,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Allocate Adjacency Matrix dynamically to prevent memory leaks [cite: 7, 36]
+    // Allocate Adjacency Matrix dynamically to prevent memory leaks
     int **graph = (int **)malloc(N * sizeof(int *));
     for (int i = 0; i < N; i++) {
         graph[i] = (int *)malloc(N * sizeof(int));
@@ -52,7 +53,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Parse the edges [cite: 9]
+    // Parse the edges
     for (int i = 0; i < M; i++) {
         int src, dst, weight;
         if (fscanf(file, "%d %d %d", &src, &dst, &weight) != 3) {
@@ -61,7 +62,7 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
-        // Negative numbers are invalid input; print appropriate error [cite: 35, 36]
+        // Negative numbers are invalid input; print appropriate error
         if (weight < 0) {
             printf("Error: Negative edge weight detected.\n");
             free_graph(graph, N);
@@ -71,7 +72,7 @@ int main(int argc, char *argv[]) {
         graph[src][dst] = weight;
     }
 
-    // Parse the query (source and destination nodes) [cite: 10]
+    // Parse the query (source and destination nodes)
     int start_node, end_node;
     if (fscanf(file, "%d %d", &start_node, &end_node) != 2) {
         free_graph(graph, N);
@@ -80,14 +81,14 @@ int main(int argc, char *argv[]) {
     }
     fclose(file);
 
-    // Edge Case: Source is identical to Destination [cite: 27, 30, 31]
+    // Edge Case: Source is identical to Destination
     if (start_node == end_node) {
         printf("%d\n0\n", start_node);
         free_graph(graph, N);
         return 0;
     }
 
-    // --- Dijkstra's Algorithm --- [cite: 11]
+    // --- Dijkstra's Algorithm ---
     int *dist = (int *)malloc(N * sizeof(int));
     int *visited = (int *)malloc(N * sizeof(int));
     int *prev = (int *)malloc(N * sizeof(int));
@@ -131,7 +132,7 @@ int main(int argc, char *argv[]) {
     }
 
     // --- Print Outputs ---
-    // Edge Case: Graph is disconnected (No path) [cite: 26, 29]
+    // Edge Case: Graph is disconnected (No path)
     if (dist[end_node] == INF) {
         printf("No path found\n");
     } else {
@@ -145,18 +146,18 @@ int main(int argc, char *argv[]) {
             curr = prev[curr];
         }
 
-        // Print path forwards [cite: 24]
+        // Print path forwards
         for (int i = path_len - 1; i >= 0; i--) {
             printf("%d", path[i]);
             if (i > 0) printf("->");
         }
-        // Print total weight [cite: 25]
+        // Print total weight
         printf("\n%d\n", dist[end_node]);
 
         free(path);
     }
 
-    // Cleanup memory [cite: 36]
+    // Cleanup memory
     free(dist);
     free(visited);
     free(prev);
