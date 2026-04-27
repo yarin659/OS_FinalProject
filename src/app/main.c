@@ -1,10 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <limits.h>
 
 #include "core/common.h"
-#include "core/graph.h"
 
 // Helper function to free the dynamically allocated 2D graph array
 void free_graph(int **graph, int n) {
@@ -19,20 +17,9 @@ int main(int argc, char *argv[]) {
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 
-    if (argc > 1 && !strcmp(argv[1], "--test")) {
-        // TODO run unit tests
-        return 0;
-    }
-
-    // Ensure a file path is provided via command line arguments
-    if (argc < 2) {
-        printf("Usage: %s <input_file.txt>\n", argv[0]);
-        return 1;
-    }
-
-    FILE *file = fopen(argv[1], "r");
+    FILE *file = fopen("data/sample_graph.dat", "r");
     if (!file) {
-        printf("Error: Could not open file %s\n", argv[1]);
+        printf("Error: Could not data file (data/sample_graph.dat); invalid CMake config?\n");
         return 1;
     }
 
