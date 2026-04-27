@@ -5,6 +5,7 @@
 
 struct graph_t {
     // TODO
+    int temp;
 };
 
 BOOL load_graph_from_file(const char* filename, struct graph_t* out_graph);

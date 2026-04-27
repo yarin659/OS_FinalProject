@@ -1,7 +1,7 @@
 #include "graph.h"
 #include <stdio.h>
 
-BOOL load_graph_from_file(const char *filename, Graph *out_graph) {
+BOOL load_graph_from_file(const char *filename, struct graph_t *out_graph) {
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
         return FALSE;
@@ -26,7 +26,7 @@ BOOL load_graph_from_file(const char *filename, Graph *out_graph) {
     return load_graph_from_string(buffer, out_graph);
 }
 
-BOOL load_graph_from_string(const char *graph_string, Graph *out_graph) {
+BOOL load_graph_from_string(const char *graph_string, struct graph_t *out_graph) {
     // TODO
     return FALSE;
 }
