@@ -3,8 +3,10 @@
 #include <limits.h>
 #include <memory.h>
 
+#include "raylib.h"
 #include "core/common.h"
 #include "core/graph.h"
+#include "render/draw.h"
 
 void dijkstra(const struct graph_t *graph);
 
@@ -20,7 +22,24 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    dijkstra(&graph);
+    const int screen_width = 900;
+    const int screen_height = 550;
+    InitWindow(screen_width, screen_height, "OS Final Project");
+    SetTargetFPS(60);
+
+    const Vector2 center = { (float)screen_width / 2, (float)screen_height / 2 };
+
+    while (!WindowShouldClose()) {
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
+
+        draw_graph_circle(&graph, center, 250.f);
+
+        EndDrawing();
+    }
+    CloseWindow();
+
+    //dijkstra(&graph);
     free_graph(&graph);
     return 0;
 }

@@ -23,7 +23,9 @@ set(CMAKE_C_STANDARD 11)
 add_executable(OSFinalProject src/app/main.c
         src/core/common.h
         src/core/graph.c
-        src/core/graph.h)
+        src/core/graph.h
+        src/render/draw.h
+        src/render/draw.c)
 target_include_directories(OSFinalProject PUBLIC src)
 target_link_libraries(OSFinalProject raylib)
 configure_file(data/sample_graph.dat data/sample_graph.dat COPYONLY)
