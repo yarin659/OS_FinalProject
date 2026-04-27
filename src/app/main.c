@@ -1,97 +1,50 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <memory.h>
 
 #include "core/common.h"
-
-// Helper function to free the dynamically allocated 2D graph array
-void free_graph(int **graph, int n) {
-    for (int i = 0; i < n; i++) {
-        free(graph[i]);
-    }
-    free(graph);
-}
+#include "core/graph.h"
 
 int main(int argc, char *argv[]) {
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 
-    FILE* file;
-    if (fopen_s(&file, "data/sample_graph.dat", "r") != 0) {
-        printf("Error: Could not data file (data/sample_graph.dat); invalid CMake config?\n");
+    struct graph_t graph = {};
+    memset(&graph, 0, sizeof(struct graph_t));
+
+    if (!load_graph_from_file("data/sample_graph.dat", &graph)) {
+        printf("Error: Could not load graph from file (data/sample_graph.dat); invalid CMake config?\n");
         return 1;
     }
-
-    int N, M;
-    if (fscanf(file, "%d %d", &N, &M) != 2) {
-        fclose(file);
-        return 1;
-    }
-
-    // Allocate Adjacency Matrix dynamically to prevent memory leaks
-    int **graph = malloc(N * sizeof(int *));
-    for (int i = 0; i < N; i++) {
-        graph[i] = (int *)malloc(N * sizeof(int));
-        for (int j = 0; j < N; j++) {
-            graph[i][j] = -1; // -1 represents no edge between nodes
-        }
-    }
-
-    // Parse the edges
-    for (int i = 0; i < M; i++) {
-        int src, dst, weight;
-        if (fscanf(file, "%d %d %d", &src, &dst, &weight) != 3) {
-            free_graph(graph, N);
-            fclose(file);
-            return 1;
-        }
-
-        // Negative numbers are invalid input; print appropriate error
-        if (weight < 0) {
-            printf("Error: Negative edge weight detected.\n");
-            free_graph(graph, N);
-            fclose(file);
-            return 1;
-        }
-        graph[src][dst] = weight;
-    }
-
-    // Parse the query (source and destination nodes)
-    int start_node, end_node;
-    if (fscanf(file, "%d %d", &start_node, &end_node) != 2) {
-        free_graph(graph, N);
-        fclose(file);
-        return 1;
-    }
-    fclose(file);
 
     // Edge Case: Source is identical to Destination
-    if (start_node == end_node) {
-        printf("%d\n0\n", start_node);
-        free_graph(graph, N);
+    if (graph.dijkstra_src == graph.dijkstra_dest) {
+        printf("%d\n0\n", graph.dijkstra_src);
+        free_graph(&graph);
         return 0;
     }
 
     // --- Dijkstra's Algorithm ---
-    int *dist = malloc(N * sizeof(int));
-    int *visited = malloc(N * sizeof(int));
-    int *prev = malloc(N * sizeof(int));
+    int *dist = malloc(graph.vertex_count * sizeof(int));
+    int *visited = malloc(graph.vertex_count * sizeof(int));
+    int *prev = malloc(graph.vertex_count * sizeof(int));
 
     // Initialize algorithm arrays
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < graph.vertex_count; i++) {
         dist[i] = INF;
         visited[i] = 0;
         prev[i] = -1;
     }
 
-    dist[start_node] = 0;
+    dist[graph.dijkstra_src] = 0;
 
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < graph.vertex_count; i++) {
         int min_dist = INF;
         int u = -1;
 
         // Find the unvisited node with the smallest known distance
-        for (int j = 0; j < N; j++) {
+        for (int j = 0; j < graph.vertex_count; j++) {
             if (!visited[j] && dist[j] < min_dist) {
                 min_dist = dist[j];
                 u = j;
@@ -99,14 +52,14 @@ int main(int argc, char *argv[]) {
         }
 
         // Break if we've reached the target or remaining nodes are unreachable
-        if (u == -1 || u == end_node) break;
+        if (u == -1 || u == graph.dijkstra_dest) break;
 
         visited[u] = 1;
 
         // Update distances for adjacent nodes
-        for (int v = 0; v < N; v++) {
-            if (!visited[v] && graph[u][v] != -1 && dist[u] != INF) {
-                int alt = dist[u] + graph[u][v];
+        for (int v = 0; v < graph.vertex_count; v++) {
+            if (!visited[v] && graph.graph[u][v] != -1 && dist[u] != INF) {
+                int alt = dist[u] + graph.graph[u][v];
                 if (alt < dist[v]) {
                     dist[v] = alt;
                     prev[v] = u;
@@ -117,12 +70,12 @@ int main(int argc, char *argv[]) {
 
     // --- Print Outputs ---
     // Edge Case: Graph is disconnected (No path)
-    if (dist[end_node] == INF) {
+    if (dist[graph.dijkstra_dest] == INF) {
         printf("No path found\n");
     } else {
         // Reconstruct the path backwards
-        int *path = malloc(N * sizeof(int));
-        int curr = end_node;
+        int *path = malloc(graph.vertex_count * sizeof(int));
+        int curr = graph.dijkstra_dest;
         int path_len = 0;
 
         while (curr != -1) {
@@ -136,7 +89,7 @@ int main(int argc, char *argv[]) {
             if (i > 0) printf("->");
         }
         // Print total weight
-        printf("\n%d\n", dist[end_node]);
+        printf("\n%d\n", dist[graph.dijkstra_dest]);
 
         free(path);
     }
@@ -145,7 +98,7 @@ int main(int argc, char *argv[]) {
     free(dist);
     free(visited);
     free(prev);
-    free_graph(graph, N);
+    free_graph(&graph);
 
     return 0;
 }
