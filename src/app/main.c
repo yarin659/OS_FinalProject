@@ -13,12 +13,11 @@ void free_graph(int **graph, int n) {
 }
 
 int main(int argc, char *argv[]) {
-    // Boilerplate parameter handling
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 
-    FILE *file = fopen("data/sample_graph.dat", "r");
-    if (!file) {
+    FILE* file;
+    if (fopen_s(&file, "data/sample_graph.dat", "r") != 0) {
         printf("Error: Could not data file (data/sample_graph.dat); invalid CMake config?\n");
         return 1;
     }
