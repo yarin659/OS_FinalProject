@@ -8,4 +8,6 @@
 
 #define UNREFERENCED_PARAMETER(x) (void)x;
 
+#define INF INT_MAX
+
 #endif //OS_FINALPROJECT_COMMON_H

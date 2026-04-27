@@ -6,8 +6,6 @@
 #include "core/common.h"
 #include "core/graph.h"
 
-#define INF INT_MAX
-
 // Helper function to free the dynamically allocated 2D graph array
 void free_graph(int **graph, int n) {
     for (int i = 0; i < n; i++) {
