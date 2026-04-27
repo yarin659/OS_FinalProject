@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Allocate Adjacency Matrix dynamically to prevent memory leaks
-    int **graph = (int **)malloc(N * sizeof(int *));
+    int **graph = malloc(N * sizeof(int *));
     for (int i = 0; i < N; i++) {
         graph[i] = (int *)malloc(N * sizeof(int));
         for (int j = 0; j < N; j++) {
@@ -73,9 +73,9 @@ int main(int argc, char *argv[]) {
     }
 
     // --- Dijkstra's Algorithm ---
-    int *dist = (int *)malloc(N * sizeof(int));
-    int *visited = (int *)malloc(N * sizeof(int));
-    int *prev = (int *)malloc(N * sizeof(int));
+    int *dist = malloc(N * sizeof(int));
+    int *visited = malloc(N * sizeof(int));
+    int *prev = malloc(N * sizeof(int));
 
     // Initialize algorithm arrays
     for (int i = 0; i < N; i++) {
@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
         printf("No path found\n");
     } else {
         // Reconstruct the path backwards
-        int *path = (int *)malloc(N * sizeof(int));
+        int *path = malloc(N * sizeof(int));
         int curr = end_node;
         int path_len = 0;
 
