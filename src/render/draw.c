@@ -1,14 +1,12 @@
 #include "draw.h"
 
 #include "raymath.h"
+#include "core/config.h"
 
 static void internal_draw_edge_arrow(const Vector2 start_pos, const Vector2 end_pos, const Vector2 dir,
-                                         const Vector2 normal, const float arrow_size, const Color color) {
-    // this is just the actual line connecting the two. we just draw it straight to the end pos and have the
-    // arrowhead drawn over it.
+                                     const Vector2 normal, const float arrow_size, const Color color) {
     DrawLineEx(start_pos, end_pos, 2.f, color);
 
-    // the rest here is the (directional) arrowhead itself
     const Vector2 scaled_dir = Vector2Scale(dir, arrow_size);
     const Vector2 scaled_normal = Vector2Scale(normal, arrow_size * 0.6f);
 
@@ -20,25 +18,18 @@ static void internal_draw_edge_arrow(const Vector2 start_pos, const Vector2 end_
 
 static void internal_draw_edge_text(const Vector2 start_pos, const Vector2 end_pos, const Vector2 normal,
                                     const int weight, const Color color) {
-    // TODO: this is sort of drawn in the midpoint but because we're drawing it here, other lines draw over this
-    // I need to check if there's a raylib this for z-ordering and then we can just give it a higher z-order.
     const Vector2 midpoint = Vector2Scale(Vector2Add(start_pos, end_pos), 0.5f);
     const Vector2 text_pos = Vector2Add(midpoint, Vector2Scale(normal, 12.0f));
-    const char* weight_text = TextFormat("%d", weight);
+    const char *weight_text = TextFormat("%d", weight);
     const int text_width = MeasureText(weight_text, 20);
-    DrawText(weight_text, (int)text_pos.x - text_width/2, (int)text_pos.y - 10, 20, color);
-
+    DrawText(weight_text, (int) text_pos.x - text_width / 2, (int) text_pos.y - 10, 20, color);
 }
 
 void draw_directed_edge(const Vector2 start_pos, const Vector2 end_pos, const int weight, const float node_radius,
                         const Color color) {
     const Vector2 dir = Vector2Normalize(Vector2Subtract(end_pos, start_pos));
-    const Vector2 normal = { -dir.y, dir.x };
+    const Vector2 normal = {-dir.y, dir.x};
 
-    // we have to offset the start and end positions so that they connect to the edges of the circle
-    // and not the center of it. Then we have to push it off to the side since I don't know
-    // whether or a pair of vertices can have arrows pointing at each other,
-    // but it's easier to see this way in case that they do.
     const float line_offset = 6.0f;
     Vector2 adjusted_start = Vector2Add(start_pos, Vector2Scale(dir, node_radius));
     Vector2 adjusted_end = Vector2Subtract(end_pos, Vector2Scale(dir, node_radius));
@@ -49,11 +40,9 @@ void draw_directed_edge(const Vector2 start_pos, const Vector2 end_pos, const in
     internal_draw_edge_text(adjusted_start, adjusted_end, normal, weight, color);
 }
 
-static void internal_draw_graph_edges(const struct graph_t* graph, Vector2 positions[], const float node_radius) {
+static void internal_draw_graph_edges(const struct graph_t *graph, Vector2 positions[], const float node_radius) {
     for (int i = 0; i < graph->vertex_count; i++) {
         for (int j = 0; j < graph->vertex_count; j++) {
-            // because -1 is a disconnect we can just skip drawing it.
-            // TODO: have to actually reference moodle to see if there are negative weights :|
             if (graph->graph[i][j] != -1) {
                 draw_directed_edge(positions[i], positions[j], graph->graph[i][j], node_radius, GRAY);
             }
@@ -61,47 +50,76 @@ static void internal_draw_graph_edges(const struct graph_t* graph, Vector2 posit
     }
 }
 
-static void internal_draw_graph_vertices(const struct graph_t* graph, Vector2 positions[], const float node_radius) {
+static void internal_draw_graph_vertices(const struct graph_t *graph, Vector2 positions[], const float node_radius) {
     for (int i = 0; i < graph->vertex_count; i++) {
         DrawCircleV(positions[i], node_radius, SKYBLUE);
         DrawCircleLines((int) positions[i].x, (int) positions[i].y, node_radius, DARKBLUE);
 
-        const char* id_text = TextFormat("%d", i);
+        const char *id_text = TextFormat("%d", i);
         const int text_width = MeasureText(id_text, 20);
         DrawText(id_text, (int) positions[i].x - text_width / 2, (int) positions[i].y - 10, 20, RAYWHITE);
     }
 }
 
-void draw_graph_circle(const struct graph_t* graph, const Vector2 center, const float radius) {
-    // TODO: This is technically being calculated every frame. maybe we want to precalculate these.
-    Vector2 positions[15];
-    for (int i = 0; i < graph->vertex_count; i++) {
-        const float angle = (2.0f * PI / (float)graph->vertex_count) * (float)i;
-        positions[i].x = center.x + cosf(angle) * radius;
-        positions[i].y = center.y + sinf(angle) * radius;
-    }
+void draw_graph_circle(const struct graph_t *graph, const Vector2 center, const float radius) {
+    Vector2 positions[MAX_VERTICES];
+    compute_graph_positions(graph, center, radius, positions);
 
-    const float node_radius = 25.0f;
-    internal_draw_graph_edges(graph, positions, node_radius);
-    internal_draw_graph_vertices(graph, positions, node_radius);
+    internal_draw_graph_edges(graph, positions, NODE_DRAW_RADIUS);
+    internal_draw_graph_vertices(graph, positions, NODE_DRAW_RADIUS);
 }
 
-static int find_bounded_font_size(const char* text, const Rectangle bounds, int padding, int min_size) {
-    int font_size = (int)bounds.height - padding;
+void draw_path_edges(const struct graph_t *graph, const int *path, const int path_len,
+                     Vector2 positions[MAX_VERTICES], const float node_radius) {
+    const Color PATH_COLOR = {255, 140, 0, 255};
+
+    for (int i = 0; i < path_len; i++) {
+        const int v = path[i];
+        DrawCircleV(positions[v], node_radius, (Color){255, 200, 60, 255});
+        DrawCircleLines((int) positions[v].x, (int) positions[v].y, node_radius, PATH_COLOR);
+
+        const char *id_text = TextFormat("%d", v);
+        const int text_width = MeasureText(id_text, 20);
+        DrawText(id_text, (int) positions[v].x - text_width / 2, (int) positions[v].y - 10, 20, DARKBROWN);
+    }
+
+    for (int i = 0; i < path_len - 1; i++) {
+        const int u = path[i];
+        const int v = path[i + 1];
+        draw_directed_edge(positions[u], positions[v], graph->graph[u][v], node_radius, PATH_COLOR);
+    }
+}
+
+void draw_entity(const Vector2 pos) {
+    // TODO: this is actually slightly off-center in some angles for some reason :(
+    DrawCircleV(pos, 16.f, (Color){255, 80, 80, 80});
+    DrawCircleV(pos, 11.f, (Color){220, 50, 50, 255});
+    DrawCircleV(pos, 5.f, (Color){255, 200, 200, 255});
+}
+
+void draw_text_background(const char *text, const int x, const int y, const int font_size, const Color color,
+                          const Color background_color) {
+    const int text_width = MeasureText(text, font_size);
+    DrawRectangle(x - 10, y - 6, text_width + 20, font_size + 12, background_color);
+    DrawText(text, x, y, font_size, color);
+}
+
+static int find_bounded_font_size(const char *text, const Rectangle bounds, const int padding, const int min_size) {
+    int font_size = (int) bounds.height - padding;
     if (font_size < min_size) font_size = min_size;
 
     int text_width = MeasureText(text, font_size);
-    while (text_width > ((int)bounds.width - padding) && font_size > min_size) {
+    while (text_width > ((int) bounds.width - padding) && font_size > min_size) {
         font_size--;
         text_width = MeasureText(text, font_size);
     }
-
     return font_size;
 }
 
 enum button_state { BUTTON_NORMAL, BUTTON_HOVER, BUTTON_ACTIVE };
-BOOL draw_button(const Vector2 start_pos, const Vector2 end_pos, const char* text, const Color color,
-    const Color hover_color, const Color active_color, const Color text_color) {
+
+BOOL draw_button(const Vector2 start_pos, const Vector2 end_pos, const char *text, const Color color,
+                 const Color hover_color, const Color active_color, const Color text_color) {
     const Rectangle button_bounds = {
         start_pos.x,
         start_pos.y,
@@ -117,7 +135,6 @@ BOOL draw_button(const Vector2 start_pos, const Vector2 end_pos, const char* tex
         } else {
             state = BUTTON_HOVER;
         }
-
         if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
             button_pressed = TRUE;
         }
@@ -128,19 +145,20 @@ BOOL draw_button(const Vector2 start_pos, const Vector2 end_pos, const char* tex
         case BUTTON_ACTIVE:
             draw_color = active_color;
             break;
+
         case BUTTON_HOVER:
             draw_color = hover_color;
             break;
-        default:
-            break;
+
+        default: break;
     }
 
     DrawRectangleRec(button_bounds, draw_color);
 
     const int font_size = find_bounded_font_size(text, button_bounds, 10, 12);
     const int text_width = MeasureText(text, font_size);
-    const int text_x = (int)(button_bounds.x + (button_bounds.width - (float)text_width) / 2.f);
-    const int text_y = (int)(button_bounds.y + (button_bounds.height - (float)font_size) / 2.f);
+    const int text_x = (int) (button_bounds.x + (button_bounds.width - (float) text_width) / 2.f);
+    const int text_y = (int) (button_bounds.y + (button_bounds.height - (float) font_size) / 2.f);
     DrawText(text, text_x, text_y, font_size, text_color);
 
     return button_pressed;

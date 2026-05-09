@@ -1,4 +1,6 @@
 #include "graph.h"
+
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -144,3 +146,13 @@ void free_graph(const struct graph_t *graph) {
 
     free(graph->graph);
 }
+
+void compute_graph_positions(const struct graph_t* graph, const Vector2 center, const float radius,
+                              Vector2 positions[MAX_VERTICES]) {
+    for (int i = 0; i < graph->vertex_count; i++) {
+        const float angle = (2.0f * PI / (float)graph->vertex_count) * (float)i;
+        positions[i].x = center.x + cosf(angle) * radius;
+        positions[i].y = center.y + sinf(angle) * radius;
+    }
+}
+

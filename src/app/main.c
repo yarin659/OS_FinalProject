@@ -3,16 +3,24 @@
 #include <limits.h>
 #include <memory.h>
 
+#include "anim.h"
 #include "raylib.h"
+#include "raymath.h"
 #include "core/common.h"
+#include "core/dijkstra.h"
 #include "core/graph.h"
 #include "render/draw.h"
 
-void dijkstra(const struct graph_t *graph);
+static void display_diagnostic(const char* msg, const int screen_width, const int screen_height) {
+    const int msg_font_size = 22;
+    const int msg_w = MeasureText(msg, msg_font_size);
+    const int msg_x = screen_width / 2 - msg_w / 2;
+    const int msg_y = screen_height - 40;
+    draw_text_background(msg, msg_x, msg_y, msg_font_size, (Color){255, 220, 80, 255},
+                         (Color){30, 30, 30, 200});
+}
 
-BOOL is_animation_playing = FALSE;
-
-int main(int argc, char *argv[]) {
+int main(const int argc, char *argv[]) {
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 
@@ -24,118 +32,76 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    const int screen_width = 900;
+    const int screen_width  = 900;
     const int screen_height = 550;
     InitWindow(screen_width, screen_height, "OS Final Project");
     SetTargetFPS(60);
 
     const Vector2 center = { (float)screen_width / 2, (float)screen_height / 2 };
+    const float graph_radius = 220.f;
+
+    Vector2 positions[MAX_VERTICES];
+    compute_graph_positions(&graph, center, graph_radius, positions);
+
+    struct anim_state anim = {0};
+    anim.phase = ANIM_IDLE;
+
+    BOOL is_animation_playing = FALSE;
 
     while (!WindowShouldClose()) {
+        const float dt = GetFrameTime();
+
+        if (is_animation_playing && anim.phase != ANIM_DONE) {
+            anim_update(&anim, &graph, positions, dt);
+        }
+
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
-        draw_graph_circle(&graph, center, 250.f);
+        draw_graph_circle(&graph, center, graph_radius);
+
+        if (is_animation_playing && anim.result.path_len > 0) {
+            draw_path_edges(&graph, anim.result.path, anim.result.path_len, positions, NODE_DRAW_RADIUS);
+        }
+
+        if (is_animation_playing && anim.phase != ANIM_IDLE) {
+            draw_entity(anim.entity_pos);
+
+            // source vertex marker
+            const Vector2 src_pos = positions[graph.dijkstra_src];
+            DrawCircleLines((int) src_pos.x, (int) src_pos.y, NODE_DRAW_RADIUS + 5.f, (Color){100, 200, 100, 200});
+        }
+
+        if (anim.phase == ANIM_DONE) {
+            display_diagnostic("Arrived at destination", screen_width, screen_height);
+        }
+
+        if (is_animation_playing && anim.phase != ANIM_IDLE && anim.result.path_len == 0) {
+            display_diagnostic("No path", screen_width, screen_height);
+        }
 
         const Vector2 button_start = { center.x - 50, 5 };
         const Vector2 button_end = { center.x + 50, 35 };
         const char* button_text = is_animation_playing ? "Stop" : "Start";
-        const Color button_color = is_animation_playing ? RED : DARKGREEN;
-        const Color button_hover_color = is_animation_playing ? VIOLET : GREEN;
-        const Color button_active_color = is_animation_playing ? PINK : LIME;
-        const Color button_text_color = is_animation_playing ? WHITE : BLACK;
-        if (draw_button(button_start, button_end, button_text, button_color, button_hover_color,
-            button_active_color, button_text_color)) {
+        const Color btn_col = is_animation_playing ? RED : DARKGREEN;
+        const Color btn_hov = is_animation_playing ? VIOLET : GREEN;
+        const Color btn_act = is_animation_playing ? PINK : LIME;
+        const Color btn_txt = is_animation_playing ? WHITE : BLACK;
+        if (draw_button(button_start, button_end, button_text, btn_col, btn_hov, btn_act, btn_txt)) {
             is_animation_playing = !is_animation_playing;
+
+            if (is_animation_playing) {
+                anim_start(&anim, &graph, positions);
+            } else {
+                anim_stop(&anim);
+            }
         }
 
         EndDrawing();
     }
-    CloseWindow();
 
-    //dijkstra(&graph);
+    CloseWindow();
+    free_dijkstra_result(&anim.result);
     free_graph(&graph);
     return 0;
-}
-
-void dijkstra(const struct graph_t *graph) {
-    // Edge Case: Source is identical to Destination
-    if (graph->dijkstra_src == graph->dijkstra_dest) {
-        printf("%d\n0\n", graph->dijkstra_src);
-        return;
-    }
-
-    // --- Dijkstra's Algorithm ---
-    int *dist = malloc(graph->vertex_count * sizeof(int));
-    int *visited = malloc(graph->vertex_count * sizeof(int));
-    int *prev = malloc(graph->vertex_count * sizeof(int));
-
-    // Initialize algorithm arrays
-    for (int i = 0; i < graph->vertex_count; i++) {
-        dist[i] = INF;
-        visited[i] = 0;
-        prev[i] = -1;
-    }
-
-    dist[graph->dijkstra_src] = 0;
-
-    for (int i = 0; i < graph->vertex_count; i++) {
-        int min_dist = INF;
-        int u = -1;
-
-        // Find the unvisited node with the smallest known distance
-        for (int j = 0; j < graph->vertex_count; j++) {
-            if (!visited[j] && dist[j] < min_dist) {
-                min_dist = dist[j];
-                u = j;
-            }
-        }
-
-        // Break if we've reached the target or remaining nodes are unreachable
-        if (u == -1 || u == graph->dijkstra_dest) break;
-
-        visited[u] = 1;
-
-        // Update distances for adjacent nodes
-        for (int v = 0; v < graph->vertex_count; v++) {
-            if (!visited[v] && graph->graph[u][v] != -1 && dist[u] != INF) {
-                const int alt = dist[u] + graph->graph[u][v];
-                if (alt < dist[v]) {
-                    dist[v] = alt;
-                    prev[v] = u;
-                }
-            }
-        }
-    }
-
-    // --- Print Outputs ---
-    // Edge Case: Graph is disconnected (No path)
-    if (dist[graph->dijkstra_dest] == INF) {
-        printf("No path found\n");
-    } else {
-        // Reconstruct the path backwards
-        int *path = malloc(graph->vertex_count * sizeof(int));
-        int curr = graph->dijkstra_dest;
-        int path_len = 0;
-
-        while (curr != -1) {
-            path[path_len++] = curr;
-            curr = prev[curr];
-        }
-
-        // Print path forwards
-        for (int i = path_len - 1; i >= 0; i--) {
-            printf("%d", path[i]);
-            if (i > 0) printf("->");
-        }
-        // Print total weight
-        printf("\n%d\n", dist[graph->dijkstra_dest]);
-
-        free(path);
-    }
-
-    // Cleanup memory
-    free(dist);
-    free(visited);
-    free(prev);
 }
