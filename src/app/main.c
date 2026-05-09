@@ -40,8 +40,8 @@ int main(int argc, char *argv[]) {
         const Vector2 button_start = { center.x - 50, 5 };
         const Vector2 button_end = { center.x + 50, 35 };
         const char* button_text = is_animation_playing ? "Stop" : "Start";
-        const Color button_color = is_animation_playing ? MAROON : DARKGREEN;
-        const Color button_hover_color = is_animation_playing ? RED : GREEN;
+        const Color button_color = is_animation_playing ? RED : DARKGREEN;
+        const Color button_hover_color = is_animation_playing ? VIOLET : GREEN;
         const Color button_active_color = is_animation_playing ? PINK : LIME;
         const Color button_text_color = is_animation_playing ? WHITE : BLACK;
         if (draw_button(button_start, button_end, button_text, button_color, button_hover_color,
