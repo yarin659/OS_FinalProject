@@ -10,6 +10,8 @@
 
 void dijkstra(const struct graph_t *graph);
 
+BOOL is_animation_playing = FALSE;
+
 int main(int argc, char *argv[]) {
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
@@ -34,6 +36,18 @@ int main(int argc, char *argv[]) {
         ClearBackground(RAYWHITE);
 
         draw_graph_circle(&graph, center, 250.f);
+
+        const Vector2 button_start = { center.x - 50, 5 };
+        const Vector2 button_end = { center.x + 50, 35 };
+        const char* button_text = is_animation_playing ? "Stop" : "Start";
+        const Color button_color = is_animation_playing ? MAROON : DARKGREEN;
+        const Color button_hover_color = is_animation_playing ? RED : GREEN;
+        const Color button_active_color = is_animation_playing ? PINK : LIME;
+        const Color button_text_color = is_animation_playing ? WHITE : BLACK;
+        if (draw_button(button_start, button_end, button_text, button_color, button_hover_color,
+            button_active_color, button_text_color)) {
+            is_animation_playing = !is_animation_playing;
+        }
 
         EndDrawing();
     }

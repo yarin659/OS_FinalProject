@@ -85,3 +85,63 @@ void draw_graph_circle(const struct graph_t* graph, const Vector2 center, const 
     internal_draw_graph_edges(graph, positions, node_radius);
     internal_draw_graph_vertices(graph, positions, node_radius);
 }
+
+static int find_bounded_font_size(const char* text, const Rectangle bounds, int padding, int min_size) {
+    int font_size = (int)bounds.height - padding;
+    if (font_size < min_size) font_size = min_size;
+
+    int text_width = MeasureText(text, font_size);
+    while (text_width > ((int)bounds.width - padding) && font_size > min_size) {
+        font_size--;
+        text_width = MeasureText(text, font_size);
+    }
+
+    return font_size;
+}
+
+enum button_state { BUTTON_NORMAL, BUTTON_HOVER, BUTTON_ACTIVE };
+BOOL draw_button(const Vector2 start_pos, const Vector2 end_pos, const char* text, const Color color,
+    const Color hover_color, const Color active_color, const Color text_color) {
+    const Rectangle button_bounds = {
+        start_pos.x,
+        start_pos.y,
+        end_pos.x - start_pos.x,
+        end_pos.y - start_pos.y
+    };
+    enum button_state state = BUTTON_NORMAL;
+    BOOL button_pressed = FALSE;
+
+    if (CheckCollisionPointRec(GetMousePosition(), button_bounds)) {
+        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+            state = BUTTON_ACTIVE;
+        } else {
+            state = BUTTON_HOVER;
+        }
+
+        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+            button_pressed = TRUE;
+        }
+    }
+
+    Color draw_color = color;
+    switch (state) {
+        case BUTTON_ACTIVE:
+            draw_color = active_color;
+            break;
+        case BUTTON_HOVER:
+            draw_color = hover_color;
+            break;
+        default:
+            break;
+    }
+
+    DrawRectangleRec(button_bounds, draw_color);
+
+    const int font_size = find_bounded_font_size(text, button_bounds, 10, 12);
+    const int text_width = MeasureText(text, font_size);
+    const int text_x = (int)(button_bounds.x + (button_bounds.width - (float)text_width) / 2.f);
+    const int text_y = (int)(button_bounds.y + (button_bounds.height - (float)font_size) / 2.f);
+    DrawText(text, text_x, text_y, font_size, text_color);
+
+    return button_pressed;
+}
