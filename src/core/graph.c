@@ -6,8 +6,8 @@
 #include <string.h>
 
 BOOL load_graph_from_file(const char *filename, struct graph_t *out_graph) {
-    FILE* file;
-    if (fopen_s(&file, filename, "rb") != 0 || file == NULL) {
+    FILE* file = fopen(filename, "rb");
+    if (file == NULL) {
         printf("load_graph_from_file: failed to open file '%s'\n", filename);
         return FALSE;
     }
@@ -47,11 +47,11 @@ BOOL load_graph_from_string(const char *graph_string, struct graph_t *out_graph)
         return FALSE;
     }
 
-    strcpy_s(input_buffer, len + 1, graph_string);
+    strncpy(input_buffer, graph_string, len + 1);
 
     char* next_token = NULL;
 
-    const char* line = strtok_s(input_buffer, "\r\n", &next_token);
+    const char* line = strtok_r(input_buffer, "\r\n", &next_token);
     if (line == NULL) {
         printf("load_graph_from_string: missing first line\n");
         free(input_buffer);
@@ -59,7 +59,7 @@ BOOL load_graph_from_string(const char *graph_string, struct graph_t *out_graph)
     }
 
     // First line handling - read out the vertex and edge count
-    if (sscanf_s(line, "%d %d", &out_graph->vertex_count, &out_graph->edge_count) != 2) {
+    if (sscanf(line, "%d %d", &out_graph->vertex_count, &out_graph->edge_count) != 2) {
         printf("load_graph_from_string: invalid vertex/edge count\n");
         free(input_buffer);
         return FALSE;
@@ -90,7 +90,7 @@ BOOL load_graph_from_string(const char *graph_string, struct graph_t *out_graph)
 
     // src-dst-weight handling to build the graph structure
     for (int i = 0; i < out_graph->edge_count; ++i) {
-        line = strtok_s(NULL, "\r\n", &next_token);
+        line = strtok_r(NULL, "\r\n", &next_token);
         if (line == NULL) {
             printf("load_graph_from_string: missing edge info line\n");
             free_graph(out_graph);
@@ -99,7 +99,7 @@ BOOL load_graph_from_string(const char *graph_string, struct graph_t *out_graph)
         }
 
         int src, dst, weight;
-        if (sscanf_s(line, "%d %d %d", &src, &dst, &weight) != 3) {
+        if (sscanf(line, "%d %d %d", &src, &dst, &weight) != 3) {
             printf("load_graph_from_string: invalid edge info line\n");
             free_graph(out_graph);
             free(input_buffer);
@@ -116,7 +116,7 @@ BOOL load_graph_from_string(const char *graph_string, struct graph_t *out_graph)
         out_graph->graph[src][dst] = weight;
     }
 
-    line = strtok_s(NULL, "\r\n", &next_token);
+    line = strtok_r(NULL, "\r\n", &next_token);
     if (line == NULL) {
         printf("load_graph_from_string: missing dijkstra info line\n");
         free_graph(out_graph);
@@ -125,7 +125,7 @@ BOOL load_graph_from_string(const char *graph_string, struct graph_t *out_graph)
     }
 
     int dijkstra_src, dijkstra_dest;
-    if (sscanf_s(line, "%d %d", &dijkstra_src, &dijkstra_dest) != 2) {
+    if (sscanf(line, "%d %d", &dijkstra_src, &dijkstra_dest) != 2) {
         printf("load_graph_from_string: invalid dijkstra info line\n");
         free_graph(out_graph);
         free(input_buffer);
