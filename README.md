@@ -11,12 +11,17 @@ To compile and run the project, use the following commands:
 ### Milestone 1: Dijkstra Shortest Path
 ```bash
 make milestone1
-./dijkstra <file_name>
+./dijkstra [file]
+```
 
+### Milestone 2: Static GUI
+```bash
 make milestone2
-./sim data/sample_graph.dat
+./sim [file]
+```
 
+### Milestone 3: Dynamic GUI
+```bash
 make milestone3
-./sim data/sample_graph.dat
-
+./sim [file]
 ```
