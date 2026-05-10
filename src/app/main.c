@@ -1,11 +1,8 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
 #include <memory.h>
 
 #include "anim.h"
 #include "raylib.h"
-#include "raymath.h"
 #include "core/common.h"
 #include "core/dijkstra.h"
 #include "core/graph.h"
@@ -32,8 +29,31 @@ int main(const int argc, char *argv[]) {
         return 1;
     }
 
+#ifdef CLI_ONLY
+    if (graph.dijkstra_src == graph.dijkstra_dest) {
+        printf("0\n0\n");
+        return 0;
+    }
+
+    struct dijkstra_result_t result = {0};
+    dijkstra_compute(&graph, &result);
+
+    if (result.path_len == 0) {
+        printf("No path found\n");
+        return 0;
+    }
+
+    printf("%d", graph.dijkstra_src);
+    for (int i = 1; i < result.path_len; i++) {
+        printf(" -> %d", result.path[i]);
+    }
+    printf("\n%d\n", result.total_dist);
+
+    free_dijkstra_result(&result);
+#else
     const int screen_width  = 900;
     const int screen_height = 550;
+    SetConfigFlags(FLAG_WINDOW_HIGHDPI);
     InitWindow(screen_width, screen_height, "OS Final Project");
     SetTargetFPS(60);
 
@@ -80,6 +100,7 @@ int main(const int argc, char *argv[]) {
             display_diagnostic("No path", screen_width, screen_height);
         }
 
+#ifndef STATIC_GUI
         const Vector2 button_start = { center.x - 50, 5 };
         const Vector2 button_end = { center.x + 50, 35 };
         const char* button_text = is_animation_playing ? "Stop" : "Start";
@@ -96,12 +117,15 @@ int main(const int argc, char *argv[]) {
                 anim_stop(&anim);
             }
         }
+#endif // STATIC_GUI
 
         EndDrawing();
     }
 
     CloseWindow();
     free_dijkstra_result(&anim.result);
+#endif // CLI_ONLY
+
     free_graph(&graph);
     return 0;
 }
