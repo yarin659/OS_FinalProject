@@ -21,10 +21,17 @@ int main(const int argc, char *argv[]) {
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 
+    const char* graph_file_path;
+    if (argc > 1) {
+        graph_file_path = argv[1];
+    } else {
+        graph_file_path = "data/sample_graph.dat";
+    }
+
     struct graph_t graph = {};
     memset(&graph, 0, sizeof(struct graph_t));
 
-    if (!load_graph_from_file("data/sample_graph.dat", &graph)) {
+    if (!load_graph_from_file(graph_file_path, &graph)) {
         printf("Error: Could not load graph from file (data/sample_graph.dat); invalid CMake config?\n");
         return 1;
     }
