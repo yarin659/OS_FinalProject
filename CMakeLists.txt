@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.1)
+cmake_minimum_required(VERSION 4.2)
 project(OSFinalProject LANGUAGES C)
 
 set(RAYLIB_VERSION 5.5)
@@ -30,7 +30,8 @@ add_executable(OSFinalProject src/app/main.c
         src/core/dijkstra.h
         src/core/config.h
         src/app/anim.c
-        src/app/anim.h)
+        src/app/anim.h
+        src/app/main.c)
 target_include_directories(OSFinalProject PUBLIC src)
 target_link_libraries(OSFinalProject raylib)
 configure_file(data/sample_graph.dat data/sample_graph.dat COPYONLY)

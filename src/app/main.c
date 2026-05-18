@@ -1,5 +1,11 @@
 #include <stdio.h>
 #include <memory.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/wait.h>
 
 #include "anim.h"
 #include "raylib.h"
@@ -58,6 +64,22 @@ int main(const int argc, char *argv[]) {
 
     free_dijkstra_result(&result);
 #else
+
+    struct traveler_t {
+        int id;
+        int src;
+        int dest;
+        struct graph_t traveler_graph;
+        struct anim_state anim;
+        pid_t child_pid;
+        Color color;
+        BOOL is_active;
+    };
+
+    char line[256];
+    int num_travelers = 0;
+
+
     const int screen_width  = 900;
     const int screen_height = 550;
     SetConfigFlags(FLAG_WINDOW_HIGHDPI);
@@ -70,41 +92,128 @@ int main(const int argc, char *argv[]) {
     Vector2 positions[MAX_VERTICES];
     compute_graph_positions(&graph, center, graph_radius, positions);
 
-    struct anim_state anim = {0};
-    anim.phase = ANIM_IDLE;
+    FILE *file = fopen(graph_file_path, "r");
+    if (!file) {
+        printf("Error: Could not open file for reading travelers\n");
+        return 1;
+    }
+    while (fgets(line, sizeof(line), file)) {
+        if (line[0] == '#' && strstr(line, "travelers")) {
+            if (fscanf(file, "%d", &num_travelers) == 1) {
+                break;
+            }
+        }
+    }
+    struct traveler_t *travelers = malloc(num_travelers * sizeof(struct traveler_t));
+    Color colors[] = { RED, BLUE, ORANGE, PURPLE, LIME, GOLD, MAROON };
+
+    for (int i = 0; i < num_travelers; i++) {
+        travelers[i].id = i;
+        fscanf(file, "%d %d", &travelers[i].src, &travelers[i].dest);
+        travelers[i].color = colors[i % 7];
+        travelers[i].is_active = TRUE;
+
+        memset(&travelers[i].anim, 0, sizeof(struct anim_state));
+        travelers[i].anim.phase = ANIM_IDLE;
+
+        travelers[i].traveler_graph = graph;
+        travelers[i].traveler_graph.dijkstra_src = travelers[i].src;
+        travelers[i].traveler_graph.dijkstra_dest = travelers[i].dest;
+
+        dijkstra_compute(&travelers[i].traveler_graph, &travelers[i].anim.result);
+
+    }
+    fclose(file);
+
+    for (int i = 0; i < num_travelers; i++) {
+        pid_t pid = fork();
+
+        if (pid < 0) {
+            perror("Fork failed");
+            free(travelers);
+            return 1;
+        }
+        else if (pid == 0) {
+            // sun process
+            printf("[%d] started\n", getpid());
+            fflush(stdout);
+
+            while (1) { //endless loop so the sun will sleep until the dad kill it
+                sleep(1);
+            }
+            exit(0);
+        }
+        else {
+            // parent process
+            travelers[i].child_pid = pid;
+        }
+    }
 
     BOOL is_animation_playing = FALSE;
 
+    // -------------------------------------------------------------
+    // main GUI
+    // -------------------------------------------------------------
     while (!WindowShouldClose()) {
         const float dt = GetFrameTime();
 
-        if (is_animation_playing && anim.phase != ANIM_DONE) {
-            anim_update(&anim, &graph, positions, dt);
+
+        if (is_animation_playing) {
+            for (int i = 0; i < num_travelers; i++) {
+                if (travelers[i].is_active && travelers[i].anim.phase != ANIM_DONE) {
+
+
+                    graph.dijkstra_src = travelers[i].src;
+                    graph.dijkstra_dest = travelers[i].dest;
+
+                    anim_update(&travelers[i].anim, &travelers[i].traveler_graph, positions, dt);
+
+                    if (travelers[i].anim.phase == ANIM_DONE) {
+                        travelers[i].is_active = FALSE;
+                        printf("Traveler %d finished. Killing child [PID: %d]\n", travelers[i].id, travelers[i].child_pid);
+                        fflush(stdout);
+                        kill(travelers[i].child_pid, SIGKILL); // שליחת סיגנל סיום לבן
+                    }
+                }
+            }
         }
 
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
+
         draw_graph_circle(&graph, center, graph_radius);
 
-        if (is_animation_playing && anim.result.path_len > 0) {
-            draw_path_edges(&graph, anim.result.path, anim.result.path_len, positions, NODE_DRAW_RADIUS);
+
+        for (int i = 0; i < num_travelers; i++) {
+            if (is_animation_playing && travelers[i].is_active) {
+
+
+                if (travelers[i].anim.result.path_len > 0) {
+                    draw_path_edges(&graph, travelers[i].anim.result.path, travelers[i].anim.result.path_len, positions, NODE_DRAW_RADIUS);
+                }
+
+
+                if (travelers[i].anim.phase != ANIM_IDLE) {
+                    DrawCircleV(travelers[i].anim.entity_pos, 12.f, travelers[i].color);
+
+
+                    Vector2 src_pos = positions[travelers[i].src];
+                    DrawCircleLines((int) src_pos.x, (int) src_pos.y, NODE_DRAW_RADIUS + 5.f, travelers[i].color);
+                }
+            }
         }
 
-        if (is_animation_playing && anim.phase != ANIM_IDLE) {
-            draw_entity(anim.entity_pos);
 
-            // source vertex marker
-            const Vector2 src_pos = positions[graph.dijkstra_src];
-            DrawCircleLines((int) src_pos.x, (int) src_pos.y, NODE_DRAW_RADIUS + 5.f, (Color){100, 200, 100, 200});
+        BOOL all_done = TRUE;
+        for (int i = 0; i < num_travelers; i++) {
+            if (travelers[i].is_active) {
+                all_done = FALSE;
+                break;
+            }
         }
-
-        if (anim.phase == ANIM_DONE) {
-            display_diagnostic("Arrived at destination", screen_width, screen_height);
-        }
-
-        if (is_animation_playing && anim.phase != ANIM_IDLE && anim.result.path_len == 0) {
-            display_diagnostic("No path", screen_width, screen_height);
+        if (is_animation_playing && all_done) {
+            display_diagnostic("All travelers arrived at destinations", screen_width, screen_height);
         }
 
 #ifndef STATIC_GUI
@@ -115,13 +224,20 @@ int main(const int argc, char *argv[]) {
         const Color btn_hov = is_animation_playing ? VIOLET : GREEN;
         const Color btn_act = is_animation_playing ? PINK : LIME;
         const Color btn_txt = is_animation_playing ? WHITE : BLACK;
+
         if (draw_button(button_start, button_end, button_text, btn_col, btn_hov, btn_act, btn_txt)) {
             is_animation_playing = !is_animation_playing;
 
             if (is_animation_playing) {
-                anim_start(&anim, &graph, positions);
+
+                for (int i = 0; i < num_travelers; i++) {
+                    anim_start(&travelers[i].anim, &travelers[i].traveler_graph, positions);
+                }
             } else {
-                anim_stop(&anim);
+
+                for (int i = 0; i < num_travelers; i++) {
+                    anim_stop(&travelers[i].anim);
+                }
             }
         }
 #endif // STATIC_GUI
@@ -129,8 +245,19 @@ int main(const int argc, char *argv[]) {
         EndDrawing();
     }
 
+    // -------------------------------------------------------------
+    // cleaning - avoid zombies
+    // -------------------------------------------------------------
     CloseWindow();
-    free_dijkstra_result(&anim.result);
+
+    for (int i = 0; i < num_travelers; i++) {
+        kill(travelers[i].child_pid, SIGKILL);
+        waitpid(travelers[i].child_pid, NULL, 0);
+
+        free_dijkstra_result(&travelers[i].anim.result);
+    }
+
+    free(travelers);
 #endif // CLI_ONLY
 
     free_graph(&graph);

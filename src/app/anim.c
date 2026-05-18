@@ -6,10 +6,10 @@
 
 void anim_start(struct anim_state *anim, const struct graph_t *graph, Vector2 positions[MAX_VERTICES]) {
     // Clean up any prior results
-    free_dijkstra_result(&anim->result);
-    memset(anim, 0, sizeof(struct anim_state));
 
-    dijkstra_compute(graph, &anim->result);
+    struct dijkstra_result_t saved = anim->result;
+    memset(anim, 0, sizeof(struct anim_state));
+    anim->result = saved;
 
     // No path
     if (anim->result.path_len == 0) {
