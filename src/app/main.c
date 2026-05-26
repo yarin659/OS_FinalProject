@@ -82,7 +82,7 @@ int main(const int argc, char *argv[]) {
         }
     }
     struct traveler_t *travelers = malloc(num_travelers * sizeof(struct traveler_t));
-    Color colors[] = { RED, BLUE, ORANGE, PURPLE, LIME, GOLD, MAROON };
+    const Color colors[] = { RED, BLUE, ORANGE, PURPLE, LIME, GOLD, MAROON };
 
     for (int i = 0; i < num_travelers; i++) {
         travelers[i].id = i;
@@ -103,27 +103,27 @@ int main(const int argc, char *argv[]) {
     fclose(file);
 
     for (int i = 0; i < num_travelers; i++) {
-        pid_t pid = fork();
+        const pid_t pid = fork();
 
         if (pid < 0) {
             perror("Fork failed");
             free(travelers);
             return 1;
         }
-        else if (pid == 0) {
-            // sun process
+
+        if (pid == 0) {
+            // child process
             printf("[%d] started\n", getpid());
             fflush(stdout);
 
             while (1) { //endless loop so the sun will sleep until the dad kill it
                 sleep(1);
             }
-            exit(0);
+            return 0;
         }
-        else {
-            // parent process
-            travelers[i].child_pid = pid;
-        }
+
+        // parent process
+        travelers[i].child_pid = pid;
     }
 
     BOOL is_animation_playing = FALSE;
@@ -138,8 +138,6 @@ int main(const int argc, char *argv[]) {
         if (is_animation_playing) {
             for (int i = 0; i < num_travelers; i++) {
                 if (travelers[i].is_active && travelers[i].anim.phase != ANIM_DONE) {
-
-
                     graph.dijkstra_src = travelers[i].src;
                     graph.dijkstra_dest = travelers[i].dest;
 
@@ -149,7 +147,7 @@ int main(const int argc, char *argv[]) {
                         travelers[i].is_active = FALSE;
                         printf("Traveler %d finished. Killing child [PID: %d]\n", travelers[i].id, travelers[i].child_pid);
                         fflush(stdout);
-                        kill(travelers[i].child_pid, SIGKILL); // שליחת סיגנל סיום לבן
+                        kill(travelers[i].child_pid, SIGKILL);
                     }
                 }
             }
