@@ -5,13 +5,15 @@
 #include "config.h"
 #include "raylib.h"
 
+struct traveler_t;
+
 struct graph_t {
     int vertex_count;
     int edge_count;
     int** graph;
 
-    int dijkstra_src;
-    int dijkstra_dest;
+    int traveler_count;
+    struct traveler_t* travelers;
 };
 
 BOOL load_graph_from_file(const char* filename, struct graph_t* out_graph);

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "traveler.h"
 
 BOOL load_graph_from_file(const char *filename, struct graph_t *out_graph) {
     FILE* file = fopen(filename, "rb");
@@ -118,22 +119,49 @@ BOOL load_graph_from_string(const char *graph_string, struct graph_t *out_graph)
 
     line = strtok_r(NULL, "\r\n", &next_token);
     if (line == NULL) {
-        printf("load_graph_from_string: missing dijkstra info line\n");
+        printf("load_graph_from_string: expected traveler count line, got EOF.\n");
         free_graph(out_graph);
         free(input_buffer);
         return FALSE;
     }
 
-    int dijkstra_src, dijkstra_dest;
-    if (sscanf(line, "%d %d", &dijkstra_src, &dijkstra_dest) != 2) {
-        printf("load_graph_from_string: invalid dijkstra info line\n");
+    int traveler_count;
+    if (sscanf(line, "%d", &traveler_count) != 1) {
+        printf("load_graph_from_string: missing or invalid traveler count.\n");
+        free_graph(out_graph);
+        free(input_buffer);
+        return FALSE;
+    }
+    out_graph->traveler_count = traveler_count;
+
+    out_graph->travelers = malloc(traveler_count * sizeof(struct traveler_t));
+    if (out_graph->travelers == NULL) {
+        printf("load_graph_from_string: failed to allocate memory for traveler descriptors\n");
         free_graph(out_graph);
         free(input_buffer);
         return FALSE;
     }
 
-    out_graph->dijkstra_src = dijkstra_src;
-    out_graph->dijkstra_dest = dijkstra_dest;
+    for (int i = 0; i < traveler_count; ++i) {
+        line = strtok_r(NULL, "\r\n", &next_token);
+        if (line == NULL) {
+            printf("load_graph_from_string: expected traveler info line for %d, got EOF.\n", i);
+            free_graph(out_graph);
+            free(input_buffer);
+            return FALSE;
+        }
+
+        struct traveler_t traveler_descriptor = {0};
+        traveler_descriptor.graph = out_graph;
+        if (sscanf(line, "%d %d", &traveler_descriptor.dijkstra_src, &traveler_descriptor.dijkstra_dest) != 2) {
+            printf("load_graph_from_string: invalid traveler info line\n");
+            free_graph(out_graph);
+            free(input_buffer);
+            return FALSE;
+        }
+
+        out_graph->travelers[i] = traveler_descriptor;
+    }
 
     free(input_buffer);
     return TRUE;
@@ -143,6 +171,11 @@ void free_graph(const struct graph_t *graph) {
     for (int i = 0; i < graph->vertex_count; ++i) {
         free(graph->graph[i]);
     }
+
+    for (int i = 0; i < graph->traveler_count; ++i) {
+        traveler_free(&graph->travelers[i]);
+    }
+    free(graph->travelers);
 
     free(graph->graph);
 }

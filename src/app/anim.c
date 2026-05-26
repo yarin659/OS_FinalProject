@@ -1,48 +1,54 @@
 #include "anim.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "raymath.h"
+#include "core/traveler.h"
 
-void anim_start(struct anim_state *anim, const struct graph_t *graph, Vector2 positions[MAX_VERTICES]) {
-    // Clean up any prior results
-    free_dijkstra_result(&anim->result);
+void anim_start(struct traveler_t* traveler, Vector2 positions[MAX_VERTICES]) {
+    if (traveler->anim != NULL) {
+        anim_stop(traveler);
+    }
+
+    struct anim_state* anim = malloc(sizeof(struct anim_state));
     memset(anim, 0, sizeof(struct anim_state));
+    anim->phase = ANIM_IDLE;
 
-    dijkstra_compute(graph, &anim->result);
+    traveler->anim = anim;
 
     // No path
-    if (anim->result.path_len == 0) {
+    if (traveler->dijkstra_result->path_len == 0) {
         anim->phase = ANIM_DONE;
         return;
     }
 
     // place entity at source vertex
-    anim->entity_pos  = positions[anim->result.path[0]];
+    anim->entity_pos  = positions[traveler->dijkstra_result->path[0]];
     anim->seg_index   = 0;
     anim->jump_index  = 0;
     anim->phase_timer = 0.f;
 
-    if (anim->result.path_len == 1) {
+    if (traveler->dijkstra_result->path_len == 1) {
         anim->phase = ANIM_DONE;
     } else {
-        const int u = anim->result.path[0];
-        const int v = anim->result.path[1];
-        anim->jump_total = graph->graph[u][v];
+        const int u = traveler->dijkstra_result->path[0];
+        const int v = traveler->dijkstra_result->path[1];
+        anim->jump_total = traveler->graph->graph[u][v];
         anim->jump_index = 0;
         anim->phase = ANIM_ON_EDGE;
         anim->phase_timer = 0.f;
     }
 }
 
-void anim_stop(struct anim_state *anim) {
-    free_dijkstra_result(&anim->result);
-    memset(anim, 0, sizeof(struct anim_state));
-    anim->phase = ANIM_IDLE;
+void anim_stop(struct traveler_t* traveler) {
+    free(traveler->anim);
+    traveler->anim = NULL;
 }
 
-void anim_update(struct anim_state *anim, const struct graph_t *graph, Vector2 positions[MAX_VERTICES],
-                 const float dt) {
+void anim_update(const struct traveler_t *traveler, Vector2 positions[MAX_VERTICES], const float dt) {
+    struct anim_state* anim = traveler->anim;
+
     if (anim->phase == ANIM_IDLE || anim->phase == ANIM_DONE) {
         return;
     }
@@ -55,8 +61,8 @@ void anim_update(struct anim_state *anim, const struct graph_t *graph, Vector2 p
         float t = anim->phase_timer / jump_sec;
         if (t > 1.f) t = 1.f;
 
-        const int u = anim->result.path[anim->seg_index];
-        const int v = anim->result.path[anim->seg_index + 1];
+        const int u = traveler->dijkstra_result->path[anim->seg_index];
+        const int v = traveler->dijkstra_result->path[anim->seg_index + 1];
         const int W = anim->jump_total;
 
         // linear interpolation :D
@@ -76,7 +82,7 @@ void anim_update(struct anim_state *anim, const struct graph_t *graph, Vector2 p
                 anim->seg_index++;
 
                 // Final destination = done, otherwise, reset timer so we wait 1s
-                if (anim->seg_index >= anim->result.path_len - 1) {
+                if (anim->seg_index >= traveler->dijkstra_result->path_len - 1) {
                     anim->phase = ANIM_DONE;
                 } else {
                     anim->phase = ANIM_AT_VERTEX;
@@ -87,9 +93,9 @@ void anim_update(struct anim_state *anim, const struct graph_t *graph, Vector2 p
     } else if (anim->phase == ANIM_AT_VERTEX) {
         // wait the whole 1s...
         if (anim->phase_timer >= VERTEX_WAIT_MS / 1000.f) {
-            const int u = anim->result.path[anim->seg_index];
-            const int v = anim->result.path[anim->seg_index + 1];
-            anim->jump_total = graph->graph[u][v];
+            const int u = traveler->dijkstra_result->path[anim->seg_index];
+            const int v = traveler->dijkstra_result->path[anim->seg_index + 1];
+            anim->jump_total = traveler->graph->graph[u][v];
             anim->jump_index = 0;
             anim->phase = ANIM_ON_EDGE;
             anim->phase_timer = 0.f;

@@ -2,14 +2,19 @@
 
 #include <stdlib.h>
 
-BOOL dijkstra_compute(const struct graph_t *graph, struct dijkstra_result_t *out_result) {
+#include "traveler.h"
+
+BOOL dijkstra_compute(const struct graph_t *graph, const int traveler_id) {
+    graph->travelers[traveler_id].dijkstra_result = malloc(sizeof(struct dijkstra_result_t));
+    struct dijkstra_result_t* out_result = graph->travelers[traveler_id].dijkstra_result;
+
     out_result->path = NULL;
     out_result->path_len = 0;
     out_result->total_dist = 0;
 
     const int n = graph->vertex_count;
-    const int src = graph->dijkstra_src;
-    const int dest = graph->dijkstra_dest;
+    const int src = graph->travelers[traveler_id].dijkstra_src;
+    const int dest = graph->travelers[traveler_id].dijkstra_dest;
 
     if (src == dest) {
         out_result->path = malloc(sizeof(int));

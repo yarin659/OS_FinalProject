@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <memory.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "anim.h"
 #include "raylib.h"
@@ -7,6 +9,7 @@
 #include "core/dijkstra.h"
 #include "core/graph.h"
 #include "render/draw.h"
+#include "core/traveler.h"
 
 static void display_diagnostic(const char* msg, const int screen_width, const int screen_height) {
     const int msg_font_size = 22;
@@ -36,28 +39,14 @@ int main(const int argc, char *argv[]) {
         return 1;
     }
 
-#ifdef CLI_ONLY
-    if (graph.dijkstra_src == graph.dijkstra_dest) {
-        printf("0\n0\n");
-        return 0;
+    for (int i = 0; i < graph.traveler_count; ++i) {
+        if (!dijkstra_compute(&graph, i)) {
+            printf("Failed to compute dijkstra for traveler #%d", i);
+        }
+
+        traveler_create_subprocess(&graph.travelers[i]);
     }
 
-    struct dijkstra_result_t result = {0};
-    dijkstra_compute(&graph, &result);
-
-    if (result.path_len == 0) {
-        printf("No path found\n");
-        return 0;
-    }
-
-    printf("%d", graph.dijkstra_src);
-    for (int i = 1; i < result.path_len; i++) {
-        printf(" -> %d", result.path[i]);
-    }
-    printf("\n%d\n", result.total_dist);
-
-    free_dijkstra_result(&result);
-#else
     const int screen_width  = 900;
     const int screen_height = 550;
     SetConfigFlags(FLAG_WINDOW_HIGHDPI);
@@ -78,8 +67,10 @@ int main(const int argc, char *argv[]) {
     while (!WindowShouldClose()) {
         const float dt = GetFrameTime();
 
-        if (is_animation_playing && anim.phase != ANIM_DONE) {
-            anim_update(&anim, &graph, positions, dt);
+        if (is_animation_playing) {
+            for (int i = 0; i < graph.traveler_count; ++i) {
+                anim_update(&graph.travelers[i], positions, dt);
+            }
         }
 
         BeginDrawing();
@@ -87,27 +78,47 @@ int main(const int argc, char *argv[]) {
 
         draw_graph_circle(&graph, center, graph_radius);
 
-        if (is_animation_playing && anim.result.path_len > 0) {
-            draw_path_edges(&graph, anim.result.path, anim.result.path_len, positions, NODE_DRAW_RADIUS);
+        if (is_animation_playing) {
+            for (int i = 0; i < graph.traveler_count; ++i) {
+                struct traveler_t* traveler = &graph.travelers[i];
+                if (traveler->anim == NULL) {
+                    continue;
+                }
+
+                if (traveler->anim->phase != ANIM_IDLE && traveler->dijkstra_result->path_len == 0) {
+                    // TODO: display the traveler ID here if able.
+                    display_diagnostic("No path for some travelers", screen_width, screen_height);
+                }
+
+                if (traveler->dijkstra_result->path_len > 0) {
+                    draw_path_edges(&graph, traveler->dijkstra_result->path, traveler->dijkstra_result->path_len,
+                                    positions, NODE_DRAW_RADIUS);
+                }
+
+                if (traveler->anim->phase != ANIM_IDLE) {
+                    draw_entity(traveler->anim->entity_pos);
+
+                    // TODO
+                    // source vertex marker
+                    /*
+                    const Vector2 src_pos = positions[traveler->dijkstra_src];
+                    DrawCircleLines((int) src_pos.x, (int) src_pos.y, NODE_DRAW_RADIUS + 5.f, (Color){100, 200, 100, 200});
+                     */
+                }
+            }
         }
 
-        if (is_animation_playing && anim.phase != ANIM_IDLE) {
-            draw_entity(anim.entity_pos);
-
-            // source vertex marker
-            const Vector2 src_pos = positions[graph.dijkstra_src];
-            DrawCircleLines((int) src_pos.x, (int) src_pos.y, NODE_DRAW_RADIUS + 5.f, (Color){100, 200, 100, 200});
+        BOOL all_travelers_done = TRUE;
+        for (int i = 0; i < graph.traveler_count; ++i) {
+            if (graph.travelers[i].anim == NULL || graph.travelers[i].anim->phase != ANIM_DONE) {
+                all_travelers_done = FALSE;
+                break;
+            }
         }
-
-        if (anim.phase == ANIM_DONE) {
+        if (all_travelers_done) {
             display_diagnostic("Arrived at destination", screen_width, screen_height);
         }
 
-        if (is_animation_playing && anim.phase != ANIM_IDLE && anim.result.path_len == 0) {
-            display_diagnostic("No path", screen_width, screen_height);
-        }
-
-#ifndef STATIC_GUI
         const Vector2 button_start = { center.x - 50, 5 };
         const Vector2 button_end = { center.x + 50, 35 };
         const char* button_text = is_animation_playing ? "Stop" : "Start";
@@ -119,20 +130,22 @@ int main(const int argc, char *argv[]) {
             is_animation_playing = !is_animation_playing;
 
             if (is_animation_playing) {
-                anim_start(&anim, &graph, positions);
+                for (int i = 0; i < graph.traveler_count; ++i) {
+                    anim_start(&graph.travelers[i], positions);
+                }
             } else {
-                anim_stop(&anim);
+                for (int i = 0; i < graph.traveler_count; ++i) {
+                    anim_stop(&graph.travelers[i]);
+                }
             }
         }
-#endif // STATIC_GUI
 
         EndDrawing();
     }
 
     CloseWindow();
-    free_dijkstra_result(&anim.result);
-#endif // CLI_ONLY
-
     free_graph(&graph);
+    int status;
+    waitpid(-1, &status, 0);
     return 0;
 }

@@ -10,7 +10,7 @@ struct dijkstra_result_t {
     int total_dist;
 };
 
-BOOL dijkstra_compute(const struct graph_t* graph, struct dijkstra_result_t* out_result);
+BOOL dijkstra_compute(const struct graph_t* graph, int traveler_id);
 void free_dijkstra_result(struct dijkstra_result_t* result);
 
 #endif //OSFINALPROJECT_DIJKSTRA_H

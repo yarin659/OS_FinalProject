@@ -14,7 +14,6 @@ enum anim_phase {
 
 struct anim_state {
     enum anim_phase phase;
-    struct dijkstra_result_t result;
 
     // Progress markings
     int seg_index; // segment of path overall
@@ -25,8 +24,8 @@ struct anim_state {
     Vector2 entity_pos;
 };
 
-void anim_start(struct anim_state *anim, const struct graph_t *graph, Vector2 positions[MAX_VERTICES]);
-void anim_stop(struct anim_state *anim);
-void anim_update(struct anim_state *anim, const struct graph_t *graph, Vector2 positions[MAX_VERTICES], float dt);
+void anim_start(struct traveler_t* traveler, Vector2 positions[MAX_VERTICES]);
+void anim_stop(struct traveler_t* traveler);
+void anim_update(const struct traveler_t *traveler, Vector2 positions[MAX_VERTICES], float dt);
 
 #endif //OSFINALPROJECT_ANIM_H
