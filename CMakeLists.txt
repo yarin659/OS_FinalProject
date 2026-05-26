@@ -30,8 +30,7 @@ add_executable(OSFinalProject src/app/main.c
         src/core/dijkstra.h
         src/core/config.h
         src/app/anim.c
-        src/app/anim.h
-        src/app/main.c)
+        src/app/anim.h)
 target_include_directories(OSFinalProject PUBLIC src)
 target_link_libraries(OSFinalProject raylib)
 configure_file(data/sample_graph.dat data/sample_graph.dat COPYONLY)
