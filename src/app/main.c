@@ -38,32 +38,9 @@ int main(const int argc, char *argv[]) {
     memset(&graph, 0, sizeof(struct graph_t));
 
     if (!load_graph_from_file(graph_file_path, &graph)) {
-        printf("Error: Could not load graph from file (data/sample_graph.dat); invalid CMake config?\n");
+        printf("Error: Could not load graph from file; invalid CMake config?\n");
         return 1;
     }
-
-#ifdef CLI_ONLY
-    if (graph.dijkstra_src == graph.dijkstra_dest) {
-        printf("0\n0\n");
-        return 0;
-    }
-
-    struct dijkstra_result_t result = {0};
-    dijkstra_compute(&graph, &result);
-
-    if (result.path_len == 0) {
-        printf("No path found\n");
-        return 0;
-    }
-
-    printf("%d", graph.dijkstra_src);
-    for (int i = 1; i < result.path_len; i++) {
-        printf(" -> %d", result.path[i]);
-    }
-    printf("\n%d\n", result.total_dist);
-
-    free_dijkstra_result(&result);
-#else
 
     struct traveler_t {
         int id;
@@ -216,7 +193,6 @@ int main(const int argc, char *argv[]) {
             display_diagnostic("All travelers arrived at destinations", screen_width, screen_height);
         }
 
-#ifndef STATIC_GUI
         const Vector2 button_start = { center.x - 50, 5 };
         const Vector2 button_end = { center.x + 50, 35 };
         const char* button_text = is_animation_playing ? "Stop" : "Start";
@@ -240,7 +216,6 @@ int main(const int argc, char *argv[]) {
                 }
             }
         }
-#endif // STATIC_GUI
 
         EndDrawing();
     }
@@ -258,7 +233,6 @@ int main(const int argc, char *argv[]) {
     }
 
     free(travelers);
-#endif // CLI_ONLY
 
     free_graph(&graph);
     return 0;
