@@ -25,3 +25,12 @@ make milestone2
 make milestone3
 ./sim [file]
 ```
+
+
+### Milestone 4:  Child Process And Father Process 
+```bash
+make milestone4
+./sim [file]
+```
+
+

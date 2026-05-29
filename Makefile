@@ -5,7 +5,7 @@ LDFLAGS = -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 TARGET_M1 = dijkstra
 TARGET_SIM = sim
 
-CORE_SRCS = src/core/graph.c src/core/dijkstra.c
+CORE_SRCS = src/core/graph.c src/core/dijkstra.c src/core/traveler.c
 RENDER_SRCS = src/render/draw.c
 ANIM_SRCS = src/app/anim.c
 SOURCES = src/app/main.c $(CORE_SRCS) $(RENDER_SRCS) $(ANIM_SRCS)
@@ -19,7 +19,10 @@ milestone2:
 milestone3:
 	$(CC) $(CFLAGS) $(SOURCES) -o $(TARGET_SIM) $(LDFLAGS)
 
+milestone4:
+	$(CC) $(CFLAGS) -O3 $(SOURCES) -o $(TARGET_SIM) $(LDFLAGS)
+
 clean:
 	rm -f $(TARGET_M1) $(TARGET_SIM) *.o
 
-.PHONY: milestone1 milestone2 milestone3 clean
+.PHONY: milestone1 milestone2 milestone3 milestone4 clean

@@ -79,6 +79,7 @@ int main(const int argc, char *argv[]) {
         draw_graph_circle(&graph, center, graph_radius);
 
         if (is_animation_playing) {
+            // לולאה ראשונה: ציור של כל המסלולים בלבד (השכבה התחתונה)
             for (int i = 0; i < graph.traveler_count; ++i) {
                 struct traveler_t* traveler = &graph.travelers[i];
                 if (traveler->anim == NULL) {
@@ -86,7 +87,6 @@ int main(const int argc, char *argv[]) {
                 }
 
                 if (traveler->anim->phase != ANIM_IDLE && traveler->dijkstra_result->path_len == 0) {
-                    // TODO: display the traveler ID here if able.
                     display_diagnostic("No path for some travelers", screen_width, screen_height);
                 }
 
@@ -94,16 +94,24 @@ int main(const int argc, char *argv[]) {
                     draw_path_edges(&graph, traveler->dijkstra_result->path, traveler->dijkstra_result->path_len,
                                     positions, NODE_DRAW_RADIUS);
                 }
+            }
+
+            // לולאה שניה: ציור של כל הישויות (השכבה העליונה, כדי שלא יוסתרו)
+            for (int i = 0; i < graph.traveler_count; ++i) {
+                struct traveler_t* traveler = &graph.travelers[i];
+                if (traveler->anim == NULL) {
+                    continue;
+                }
 
                 if (traveler->anim->phase != ANIM_IDLE) {
-                    draw_entity(traveler->anim->entity_pos);
+                    // כאן נחליט מי אב ומי בן.
+                    // נניח שה-traveler הראשון (אינדקס 0) הוא האב, והשאר הם בנים:
+                    BOOL is_child = (i != 0);
 
-                    // TODO
-                    // source vertex marker
-                    /*
-                    const Vector2 src_pos = positions[traveler->dijkstra_src];
-                    DrawCircleLines((int) src_pos.x, (int) src_pos.y, NODE_DRAW_RADIUS + 5.f, (Color){100, 200, 100, 200});
-                     */
+                    // במידה ויש לך שדה מיוחד ב-traveler_t שמציין אם הוא תהליך בן,
+                    // תוכל להשתמש בו במקום התנאי (i != 0)
+
+                    draw_entity(traveler->anim->entity_pos, is_child);
                 }
             }
         }

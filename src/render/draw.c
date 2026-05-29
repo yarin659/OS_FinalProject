@@ -1,5 +1,5 @@
 #include "draw.h"
-
+#include <unistd.h>
 #include "raymath.h"
 #include "core/config.h"
 
@@ -90,13 +90,27 @@ void draw_path_edges(const struct graph_t *graph, const int *path, const int pat
     }
 }
 
-void draw_entity(const Vector2 pos) {
-    // TODO: this is actually slightly off-center in some angles for some reason :(
-    DrawCircleV(pos, 16.f, (Color){255, 80, 80, 80});
-    DrawCircleV(pos, 11.f, (Color){220, 50, 50, 255});
-    DrawCircleV(pos, 5.f, (Color){255, 200, 200, 255});
-}
+void draw_entity(const Vector2 pos, BOOL is_child) {
+    Color halo_color;
+    Color main_color;
+    Color shine_color;
 
+    if (is_child) {
+        // צבעים עבור תהליך בן (כחול)
+        halo_color  = (Color){80, 80, 255, 80};
+        main_color  = (Color){50, 50, 220, 255};
+        shine_color = (Color){200, 200, 255, 255};
+    } else {
+        // צבעים עבור תהליך אב (אדום)
+        halo_color  = (Color){255, 80, 80, 80};
+        main_color  = (Color){220, 50, 50, 255};
+        shine_color = (Color){255, 200, 200, 255};
+    }
+
+    DrawCircleV(pos, 16.f, halo_color);
+    DrawCircleV(pos, 11.f, main_color);
+    DrawCircleV(pos, 5.f,  shine_color);
+}
 void draw_text_background(const char *text, const int x, const int y, const int font_size, const Color color,
                           const Color background_color) {
     const int text_width = MeasureText(text, font_size);
