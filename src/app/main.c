@@ -104,10 +104,7 @@ int main(const int argc, char *argv[]) {
                 }
 
                 if (traveler->anim->phase != ANIM_IDLE) {
-                    // decide who is the parent and who is a child, assume index 0 is the parent
-                    // and the rest are children
-                    BOOL is_child = (i != 0);
-                    draw_entity(traveler->anim->entity_pos, is_child);
+                    draw_entity(traveler->anim->entity_pos, i);
                 }
             }
         }

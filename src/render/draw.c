@@ -90,27 +90,25 @@ void draw_path_edges(const struct graph_t *graph, const int *path, const int pat
     }
 }
 
-void draw_entity(const Vector2 pos, BOOL is_child) {
-    Color halo_color;
-    Color main_color;
-    Color shine_color;
+void draw_entity(const Vector2 pos, const int index) {
+    static const struct { Color halo; Color main; Color shine; } PALETTE[] = {
+        { {255, 80,  80,  80}, {220, 50,  50,  255}, {255, 200, 200, 255} }, // red
+        { {80,  80,  255, 80}, {50,  50,  220, 255}, {200, 200, 255, 255} }, // blue
+        { {80,  200, 80,  80}, {40,  170, 40,  255}, {180, 255, 180, 255} }, // green
+        { {220, 140, 40,  80}, {190, 110, 20,  255}, {255, 220, 160, 255} }, // orange
+        { {180, 60,  220, 80}, {140, 30,  190, 255}, {230, 180, 255, 255} }, // purple
+        { {40,  200, 210, 80}, {20,  170, 180, 255}, {170, 240, 245, 255} }, // cyan
+        { {210, 190, 30,  80}, {180, 160, 10,  255}, {255, 245, 160, 255} }, // yellow
+        { {220, 80,  160, 80}, {190, 50,  130, 255}, {255, 190, 220, 255} }, // pink
+    };
+    static const int PALETTE_SIZE = (int)(sizeof(PALETTE) / sizeof(PALETTE[0]));
 
-    if (is_child) {
-        // צבעים עבור תהליך בן (כחול)
-        halo_color  = (Color){80, 80, 255, 80};
-        main_color  = (Color){50, 50, 220, 255};
-        shine_color = (Color){200, 200, 255, 255};
-    } else {
-        // צבעים עבור תהליך אב (אדום)
-        halo_color  = (Color){255, 80, 80, 80};
-        main_color  = (Color){220, 50, 50, 255};
-        shine_color = (Color){255, 200, 200, 255};
-    }
-
-    DrawCircleV(pos, 16.f, halo_color);
-    DrawCircleV(pos, 11.f, main_color);
-    DrawCircleV(pos, 5.f,  shine_color);
+    const int i = ((index % PALETTE_SIZE) + PALETTE_SIZE) % PALETTE_SIZE;
+    DrawCircleV(pos, 16.f, PALETTE[i].halo);
+    DrawCircleV(pos, 11.f, PALETTE[i].main);
+    DrawCircleV(pos, 5.f,  PALETTE[i].shine);
 }
+
 void draw_text_background(const char *text, const int x, const int y, const int font_size, const Color color,
                           const Color background_color) {
     const int text_width = MeasureText(text, font_size);
