@@ -96,7 +96,7 @@ int main(const int argc, char *argv[]) {
                 }
             }
 
-            // לולאה שניה: ציור של כל הישויות (השכבה העליונה, כדי שלא יוסתרו)
+            // second loop - drawing all entities at the top layer so there's no z-fighting
             for (int i = 0; i < graph.traveler_count; ++i) {
                 struct traveler_t* traveler = &graph.travelers[i];
                 if (traveler->anim == NULL) {
@@ -104,13 +104,9 @@ int main(const int argc, char *argv[]) {
                 }
 
                 if (traveler->anim->phase != ANIM_IDLE) {
-                    // כאן נחליט מי אב ומי בן.
-                    // נניח שה-traveler הראשון (אינדקס 0) הוא האב, והשאר הם בנים:
+                    // decide who is the parent and who is a child, assume index 0 is the parent
+                    // and the rest are children
                     BOOL is_child = (i != 0);
-
-                    // במידה ויש לך שדה מיוחד ב-traveler_t שמציין אם הוא תהליך בן,
-                    // תוכל להשתמש בו במקום התנאי (i != 0)
-
                     draw_entity(traveler->anim->entity_pos, is_child);
                 }
             }
