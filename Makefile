@@ -12,7 +12,10 @@ SOURCES = src/app/main.c $(CORE_SRCS) $(RENDER_SRCS) $(ANIM_SRCS)
 milestone4:
 	$(CC) $(CFLAGS) -O3 $(SOURCES) -o $(TARGET_SIM) $(LDFLAGS)
 
-clean:
-	rm -f $(TARGET_SIM) *.o
+milestone5:
+	$(CC) $(CFLAGS) -O3 $(SOURCES) -o $(TARGET_SIM) $(LDFLAGS)
 
-.PHONY: milestone4 clean
+clean:
+	rm -f $(TARGET_SIM) *.o src/core/*.o src/render/*.o src/app/*.o
+
+.PHONY: milestone4 milestone5 clean
