@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdio.h>
 #include <memory.h>
 #include <sys/types.h>
@@ -9,6 +10,7 @@
 #include "raylib.h"
 #include "core/common.h"
 #include "core/graph.h"
+#include "core/vertex_lock.h"
 #include "render/draw.h"
 #include "core/traveler.h"
 
@@ -52,7 +54,7 @@ int main(const int argc, char *argv[]) {
     const int screen_width  = 900;
     const int screen_height = 550;
     SetConfigFlags(FLAG_WINDOW_HIGHDPI);
-    InitWindow(screen_width, screen_height, "OS Final Project - Milestone 5");
+    InitWindow(screen_width, screen_height, "OS Final Project - Milestone 6");
     SetTargetFPS(60);
 
     const Vector2 center = { (float)screen_width / 2, (float)screen_height / 2 };
@@ -65,6 +67,8 @@ int main(const int argc, char *argv[]) {
         anim_start(&graph.travelers[i], positions);
     }
 
+    struct vertex_locks_t *vertex_locks = NULL;
+
     BOOL is_animation_playing = FALSE;
 
     while (!WindowShouldClose()) {
@@ -72,36 +76,55 @@ int main(const int argc, char *argv[]) {
 
         struct ipc_msg_t msg;
         while (read(pipe_fds[0], &msg, sizeof(struct ipc_msg_t)) > 0) {
-            struct traveler_t* traveler = &graph.travelers[msg.traveler_index];
-            struct anim_state* anim = traveler->anim;
+            const struct traveler_t *traveler = &graph.travelers[msg.traveler_index];
+            struct anim_state *anim = traveler->anim;
 
-            if (msg.type == MSG_ARRIVED) {
-                if (msg.next_node != -1) {
-                    printf("[%d] arrived at node %d | next node: %d\n", msg.pid, msg.current_node, msg.next_node);
+            switch (msg.type) {
+                case MSG_WAITING:
+                    printf("[%d] WAITING outside node %d\n", msg.pid, msg.current_node);
                     fflush(stdout);
-
                     if (anim) {
-                        anim->phase = ANIM_ON_EDGE;
-                        anim->current_u = msg.current_node;
-                        anim->current_v = msg.next_node;
-                        anim->phase_timer = 0.f;
-                        const int weight = graph.graph[msg.current_node][msg.next_node];
-                        anim->total_edge_time = (weight * JUMP_DURATION_MS) / 1000.f;
+                        anim->phase = ANIM_WAITING_OUTSIDE;
+                        anim->waiting_node = msg.current_node;
+                        const float angle = (float)msg.traveler_index * (2.f * 3.14159265f / 8.f);
+                        const float orbit = NODE_DRAW_RADIUS + 20.f;
+                        anim->entity_pos.x = positions[msg.current_node].x + cosf(angle) * orbit;
+                        anim->entity_pos.y = positions[msg.current_node].y + sinf(angle) * orbit;
                     }
-                } else {
-                    printf("[%d] arrived at node %d | DESTINATION\n", msg.pid, msg.current_node);
+                    break;
+
+                case MSG_ARRIVED:
+                    printf("[%d] ENTERED node %d | next: %d\n", msg.pid, msg.current_node, msg.next_node);
                     fflush(stdout);
                     if (anim) {
                         anim->phase = ANIM_AT_VERTEX;
                         anim->entity_pos = positions[msg.current_node];
                     }
-                }
-            } else if (msg.type == MSG_FINISHED) {
-                printf("[%d] finished\n", msg.pid);
-                fflush(stdout);
-                if (anim) {
-                    anim->phase = ANIM_DONE;
-                }
+                    break;
+
+                case MSG_LEAVING:
+                    printf("[%d] LEAVING node %d -> node %d\n", msg.pid, msg.current_node, msg.next_node);
+                    fflush(stdout);
+                    if (anim) {
+                        anim->phase = ANIM_ON_EDGE;
+                        anim->current_u = msg.current_node;
+                        anim->current_v = msg.next_node;
+                        anim->phase_timer = 0.f;
+                        const float weight = (float)graph.graph[msg.current_node][msg.next_node];
+                        anim->total_edge_time = (weight * JUMP_DURATION_MS) / 1000.f;
+                    }
+                    break;
+
+                case MSG_FINISHED:
+                    printf("[%d] FINISHED\n", msg.pid);
+                    fflush(stdout);
+                    if (anim) {
+                        anim->phase = ANIM_DONE;
+                    }
+                    break;
+
+                default:
+                    break;
             }
         }
 
@@ -117,45 +140,54 @@ int main(const int argc, char *argv[]) {
         draw_graph_circle(&graph, center, graph_radius);
 
         for (int i = 0; i < graph.traveler_count; ++i) {
-            struct traveler_t* traveler = &graph.travelers[i];
-            if (traveler->anim == NULL) {
-                continue;
+            const struct traveler_t *traveler = &graph.travelers[i];
+            if (!traveler->anim) continue;
+
+            if (traveler->anim->phase == ANIM_WAITING_OUTSIDE) {
+                draw_entity_waiting(traveler->anim->entity_pos, i);
+            } else {
+                draw_entity(traveler->anim->entity_pos, i);
             }
-            draw_entity(traveler->anim->entity_pos, i);
         }
 
         BOOL all_travelers_done = TRUE;
         for (int i = 0; i < graph.traveler_count; ++i) {
-            if (graph.travelers[i].anim == NULL || graph.travelers[i].anim->phase != ANIM_DONE) {
+            if (!graph.travelers[i].anim || graph.travelers[i].anim->phase != ANIM_DONE) {
                 all_travelers_done = FALSE;
                 break;
             }
         }
-        if (all_travelers_done) {
+        if (all_travelers_done && is_animation_playing) {
             display_diagnostic("Arrived at destination", screen_width, screen_height);
         }
 
         const Vector2 button_start = { center.x - 50, 5 };
         const Vector2 button_end = { center.x + 50, 35 };
-        const char* button_text = is_animation_playing ? "Stop" : "Start";
+        const char *button_text = is_animation_playing ? "Stop" : "Start";
         const Color btn_col = is_animation_playing ? RED : DARKGREEN;
         const Color btn_hov = is_animation_playing ? VIOLET : GREEN;
         const Color btn_act = is_animation_playing ? PINK : LIME;
         const Color btn_txt = is_animation_playing ? WHITE : BLACK;
+
         if (draw_button(button_start, button_end, button_text, btn_col, btn_hov, btn_act, btn_txt)) {
             is_animation_playing = !is_animation_playing;
-            
+
             if (is_animation_playing) {
-                // Synchronization Fix: Create subprocesses ONLY when simulation starts
+                vertex_locks = vertex_locks_create(graph.vertex_count);
+
                 for (int i = 0; i < graph.traveler_count; ++i) {
                     anim_start(&graph.travelers[i], positions);
+                    graph.travelers[i].vertex_locks = vertex_locks;
                     traveler_create_subprocess(&graph.travelers[i], i, pipe_fds[1]);
                 }
             } else {
+                // kill subprocesses and destroy our semaphores
                 for (int i = 0; i < graph.traveler_count; ++i) {
                     traveler_destroy_subprocess(&graph.travelers[i]);
                     anim_stop(&graph.travelers[i]);
                 }
+                vertex_locks_destroy(vertex_locks);
+                vertex_locks = NULL;
             }
         }
 
@@ -165,9 +197,13 @@ int main(const int argc, char *argv[]) {
     CloseWindow();
     close(pipe_fds[0]);
     close(pipe_fds[1]);
-    free_graph(&graph);
 
-    while (wait(NULL) > 0);
-    
+    if (vertex_locks) {
+        vertex_locks_destroy(vertex_locks);
+    }
+
+    free_graph(&graph);
+    while (wait(NULL) > 0) {}
+
     return 0;
 }

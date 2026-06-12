@@ -4,7 +4,7 @@ LDFLAGS = -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 
 TARGET_SIM = sim
 
-CORE_SRCS = src/core/graph.c src/core/dijkstra.c src/core/traveler.c
+CORE_SRCS = src/core/graph.c src/core/dijkstra.c src/core/traveler.c src/core/vertex_lock.c
 RENDER_SRCS = src/render/draw.c
 ANIM_SRCS = src/app/anim.c
 SOURCES = src/app/main.c $(CORE_SRCS) $(RENDER_SRCS) $(ANIM_SRCS)

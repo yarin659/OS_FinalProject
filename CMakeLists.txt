@@ -32,7 +32,9 @@ add_executable(OSFinalProject src/app/main.c
         src/app/anim.c
         src/app/anim.h
         src/core/traveler.h
-        src/core/traveler.c)
+        src/core/traveler.c
+        src/core/vertex_lock.h
+        src/core/vertex_lock.c)
 target_include_directories(OSFinalProject PUBLIC src)
 target_link_libraries(OSFinalProject raylib)
 configure_file(data/sample_graph.dat data/sample_graph.dat COPYONLY)

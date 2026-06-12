@@ -109,6 +109,31 @@ void draw_entity(const Vector2 pos, const int index) {
     DrawCircleV(pos, 5.f,  PALETTE[i].shine);
 }
 
+void draw_entity_waiting(const Vector2 pos, const int index) {
+    static const Color PALETTE_MAIN[] = {
+        {220, 50,  50,  255}, // red
+        {50,  50,  220, 255}, // blue
+        {40,  170, 40,  255}, // green
+        {190, 110, 20,  255}, // orange
+        {140, 30,  190, 255}, // purple
+        {20,  170, 180, 255}, // cyan
+        {180, 160, 10,  255}, // yellow
+        {190, 50,  130, 255}, // pink
+    };
+    static const int PALETTE_SIZE = (int)(sizeof(PALETTE_MAIN) / sizeof(PALETTE_MAIN[0]));
+
+    const int i = ((index % PALETTE_SIZE) + PALETTE_SIZE) % PALETTE_SIZE;
+    const Color c = PALETTE_MAIN[i];
+
+    // outer dash-styled ring
+    DrawCircleLines((int)pos.x, (int)pos.y, 14.f, c);
+    DrawCircleLines((int)pos.x, (int)pos.y, 11.f, (Color){c.r, c.g, c.b, 140});
+    // small gray fill
+    DrawCircleV(pos, 5.f, (Color){180, 180, 180, 200});
+    // "W" label for waiting
+    DrawText("W", (int)pos.x - 4, (int)pos.y - 7, 10, c);
+}
+
 void draw_text_background(const char *text, const int x, const int y, const int font_size, const Color color,
                           const Color background_color) {
     const int text_width = MeasureText(text, font_size);
