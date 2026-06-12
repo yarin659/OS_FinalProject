@@ -9,13 +9,10 @@ RENDER_SRCS = src/render/draw.c
 ANIM_SRCS = src/app/anim.c
 SOURCES = src/app/main.c $(CORE_SRCS) $(RENDER_SRCS) $(ANIM_SRCS)
 
-milestone4:
-	$(CC) $(CFLAGS) -O3 $(SOURCES) -o $(TARGET_SIM) $(LDFLAGS)
-
-milestone5:
+milestone6:
 	$(CC) $(CFLAGS) -O3 $(SOURCES) -o $(TARGET_SIM) $(LDFLAGS)
 
 clean:
 	rm -f $(TARGET_SIM) *.o src/core/*.o src/render/*.o src/app/*.o
 
-.PHONY: milestone4 milestone5 clean
+.PHONY: milestone6 clean

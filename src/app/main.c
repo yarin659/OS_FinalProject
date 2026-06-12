@@ -8,7 +8,6 @@
 #include "anim.h"
 #include "raylib.h"
 #include "core/common.h"
-#include "core/dijkstra.h"
 #include "core/graph.h"
 #include "render/draw.h"
 #include "core/traveler.h"
